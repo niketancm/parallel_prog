@@ -21,6 +21,7 @@ pixel* pix(pixel* image, const int xx, const int yy, const int xsize)
   return (image + off);
 }
 
+//nikni337, lab2
 void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, const double *w){
   int x,y,x2,y2, wi;
   double r,g,b,n, wc;
