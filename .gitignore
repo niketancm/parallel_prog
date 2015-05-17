@@ -1,1 +1,5 @@
 cscope*
+*.ppm
+*.o
+blurc
+thresc
