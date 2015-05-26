@@ -13,6 +13,12 @@ typedef struct _pixel {
     unsigned char r,g,b;
 } pixel;
 
-void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, const double *w);
+struct blurfilter_attr{
+  int xsize, ysize, radius, starty, stopy;
+  double *w;
+  pixel *src, *dst;
+};
+
+void *blurfilter(void *attr);
 
 #endif
