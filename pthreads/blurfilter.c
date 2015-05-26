@@ -1,15 +1,15 @@
 /*
-  File: blurfilter.c
+File: blurfilter.c
 
-  Implementation of blurfilter function.
-    
- */
+Implementation of blurfilter function.
+
+*/
 #include <stdio.h>
 #include "blurfilter.h"
 #include "ppmio.h"
 
 
-pixel* pix(pixel* image, const int xx, const int yy, const int xsize)
+inline pixel* pix(pixel* image, const int xx, const int yy, const int xsize)
 {
   register int off = xsize*yy + xx;
 
@@ -21,72 +21,58 @@ pixel* pix(pixel* image, const int xx, const int yy, const int xsize)
   return (image + off);
 }
 
-//nikni337, lab2
-void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, const double *w){
-  int x,y,x2,y2, wi;
+void *blurfilter(void *attr){
+  /*Extract data from the struct.*/
+  struct blurfilter_attr *_attr = (struct blurfilter_attr*) attr;
+  int xsize = _attr->xsize, 
+      ysize = _attr->ysize, 
+      starty = _attr->starty, 
+      stopy = _attr->stopy, 
+      radius = _attr->radius;
+  pixel *src = _attr->src, 
+        *dst = _attr->dst;
+  double *w = _attr->w;
+
+  int x,y, wi;
   double r,g,b,n, wc;
-  pixel dst[MAX_PIXELS];
+  pixel *pos = pix(src, 0, starty, xsize), *tpos;
 
-
-  for (y=0; y<ysize; y++) {
-    for (x=0; x<xsize; x++) {
-      r = w[0] * pix(src, x, y, xsize)->r;
-      g = w[0] * pix(src, x, y, xsize)->g;
-      b = w[0] * pix(src, x, y, xsize)->b;
+  /* Run the filter. Essentially the same code as 
+   * the sequential code given for the lab.
+   * The sequential code used two passes to do the filtering. 
+   * This is achieved by running the first pass twice but 
+   * transposing the output after each run.
+   * This will probably utilise the cache more.
+   * Some temporary variables are used to avoid repeating some calculations. */  
+  for (y = starty; y<stopy; ++y) {
+    for (x=0; x<xsize; ++x) {
+      r = w[0] * pos->r;
+      g = w[0] * pos->g;
+      b = w[0] * pos->b;
       n = w[0];
       for ( wi=1; wi <= radius; wi++) {
-	wc = w[wi];
-	x2 = x - wi;
-	if(x2 >= 0) {
-	  r += wc * pix(src, x2, y, xsize)->r;
-	  g += wc * pix(src, x2, y, xsize)->g;
-	  b += wc * pix(src, x2, y, xsize)->b;
-	  n += wc;
-	}
-	x2 = x + wi;
-	if(x2 < xsize) {
-	  r += wc * pix(src, x2, y, xsize)->r;
-	  g += wc * pix(src, x2, y, xsize)->g;
-	  b += wc * pix(src, x2, y, xsize)->b;
-	  n += wc;
-	}
+        wc = w[wi];
+        tpos = pos-wi;
+        if(x-wi >= 0) {
+          r += wc * tpos->r;
+          g += wc * tpos->g;
+          b += wc * tpos->b;
+          n += wc;
+        }
+        tpos = pos+wi;
+        if(x+wi < xsize) {
+          r += wc * tpos->r;
+          g += wc * tpos->g;
+          b += wc * tpos->b;
+          n += wc;
+        }
       }
-      pix(dst,x,y, xsize)->r = r/n;
-      pix(dst,x,y, xsize)->g = g/n;
-      pix(dst,x,y, xsize)->b = b/n;
+      tpos = pix(dst,y,x, ysize);
+      tpos->r = r/n;
+      tpos->g = g/n;
+      tpos->b = b/n;
+      ++pos;
     }
   }
-
-  for (y=0; y<ysize; y++) {
-    for (x=0; x<xsize; x++) {
-      r = w[0] * pix(dst, x, y, xsize)->r;
-      g = w[0] * pix(dst, x, y, xsize)->g;
-      b = w[0] * pix(dst, x, y, xsize)->b;
-      n = w[0];
-      for ( wi=1; wi <= radius; wi++) {
-	wc = w[wi];
-	y2 = y - wi;
-	if(y2 >= 0) {
-	  r += wc * pix(dst, x, y2, xsize)->r;
-	  g += wc * pix(dst, x, y2, xsize)->g;
-	  b += wc * pix(dst, x, y2, xsize)->b;
-	  n += wc;
-	}
-	y2 = y + wi;
-	if(y2 < ysize) {
-	  r += wc * pix(dst, x, y2, xsize)->r;
-	  g += wc * pix(dst, x, y2, xsize)->g;
-	  b += wc * pix(dst, x, y2, xsize)->b;
-	  n += wc;
-	}
-      }
-      pix(src,x,y, xsize)->r = r/n;
-      pix(src,x,y, xsize)->g = g/n;
-      pix(src,x,y, xsize)->b = b/n;
-    }
-  }
-
+  return 0;
 }
-
-
-
